@@ -1,9 +1,34 @@
-use std::ffi::CString;
+use std::ffi::{CString, CStr};
+use std::ptr::null_mut;
+use std::os::raw::c_char;
 
 #[test]
 fn create_and_destroy() {
     let hs = Hunspell::new("/usr/share/hunspell/en_US.aff",
                            "/usr/share/hunspell/en_US.dic");
+}
+
+#[test]
+fn check() {
+    let hs = Hunspell::new("/usr/share/hunspell/en_US.aff",
+                           "/usr/share/hunspell/en_US.dic");
+    assert!(hs.check("programming"));
+    assert!(!hs.check("progrmaing"));
+}
+
+#[test]
+fn suggest() {
+    let hs = Hunspell::new("/usr/share/hunspell/en_US.aff",
+                           "/usr/share/hunspell/en_US.dic");
+    assert!(hs.suggest("progra").len() > 0);
+}
+
+#[test]
+fn stem() {
+    let hs = Hunspell::new("/usr/share/hunspell/en_US.aff",
+                           "/usr/share/hunspell/en_US.dic");
+    let cat_stem = hs.stem("cats");
+    assert!(cat_stem[0] == "cat");
 }
 
 enum Hunhandle {}
@@ -31,8 +56,30 @@ extern {
     fn Hunspell_free_list(pHunspell: *mut Hunhandle, slst: *mut *mut *mut i8, n: i32);
 }
 
+type CStringList = *mut *mut i8;
+
 struct Hunspell {
     handle: *mut Hunhandle
+}
+
+macro_rules! extract_vec {
+    ( $fname:ident, $handle:expr, $( $arg:expr ),* ) => {
+        {
+            let mut result = Vec::new();
+            unsafe {
+                let mut list = null_mut();
+                let n = $fname($handle, &mut list, $( $arg ),*) as isize;
+                if n != 0 {
+                    for i in 0..n {
+                        let item = CStr::from_ptr(*list.offset(i));
+                        result.push(String::from(item.to_str().unwrap()));
+                    }
+                    Hunspell_free_list($handle, &mut list, n as i32);
+                }
+            }
+            result
+        }
+    }
 }
 
 impl Hunspell {
@@ -56,6 +103,28 @@ impl Hunspell {
                                             key.as_ptr())
             }
         }
+    }
+
+    pub fn check(&self, word: &str) -> bool {
+        let word = CString::new(word).unwrap();
+        unsafe {
+            Hunspell_spell(self.handle, word.as_ptr()) == 1
+        }
+    }
+
+    pub fn suggest(&self, word: &str) -> Vec<String> {
+        let word = CString::new(word).unwrap();
+        extract_vec!(Hunspell_suggest, self.handle, word.as_ptr())
+    }
+
+    pub fn analyze(&self, word: &str) -> Vec<String> {
+        let word = CString::new(word).unwrap();
+        extract_vec!(Hunspell_analyze, self.handle, word.as_ptr())
+    }
+
+    pub fn stem(&self, word: &str) -> Vec<String> {
+        let word = CString::new(word).unwrap();
+        extract_vec!(Hunspell_stem, self.handle, word.as_ptr())
     }
 }
 
