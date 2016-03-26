@@ -1,6 +1,6 @@
 [package]
 name = "hunspell"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Lipka Boldizsár <lipkab@zoho.com>"]
 description = "Rust bindings to the Hunspell library"
 keywords = ["spellcheck", "hunspell"]
