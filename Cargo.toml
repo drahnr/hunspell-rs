@@ -5,6 +5,6 @@ authors = ["Lipka Boldizsár <lipkab@zoho.com>"]
 description = "Rust bindings to the Hunspell library"
 keywords = ["spellcheck", "hunspell"]
 license = "Apache-2.0"
-readme = "readme.md"
+readme = "README.md"
 
 [dependencies]
