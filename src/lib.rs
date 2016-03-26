@@ -74,7 +74,7 @@ extern {
 
 type CStringList = *mut *mut i8;
 
-struct Hunspell {
+pub struct Hunspell {
     handle: *mut Hunhandle
 }
 
