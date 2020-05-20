@@ -65,6 +65,22 @@ impl Hunspell {
         }
     }
 
+    /// Add an additional dictonary for lookup usage for i.e. `check`.
+    pub fn add_dictionary(&mut self, dicpath: &str) -> bool {
+        let dicpath = CString::new(dicpath).unwrap();
+        unsafe { ffi::Hunspell_add_dic(self.handle, dicpath.as_ptr()) == 0 }
+    }
+
+    /// Add a word to the runtime dictionary.
+    ///
+    /// Once the `Hunspell` struct is destroyed,
+    /// the added words are forgotten, since they were never persisted
+    /// in the first place.
+    pub fn add(&mut self, word: &str) -> bool {
+        let cword = CString::new(word).unwrap();
+        unsafe { ffi::Hunspell_add(self.handle, cword.as_ptr()) == 0 }
+    }
+
     pub fn check(&self, word: &str) -> bool {
         let word = CString::new(word).unwrap();
         unsafe { ffi::Hunspell_spell(self.handle, word.as_ptr()) == 1 }

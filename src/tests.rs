@@ -30,6 +30,25 @@ fn check() {
 }
 
 #[test]
+fn check_with_added_word() {
+    let mut hs = Hunspell::new("tests/fixtures/reduced.aff", "tests/fixtures/reduced.dic");
+    assert!(hs.check("cats"));
+    assert!(!hs.check("octonasaurius"));
+    assert!(hs.add("octonasaurius"));
+    assert!(hs.check("octonasaurius"));
+}
+
+#[test]
+fn check_with_extra_dic() {
+    let mut hs = Hunspell::new("tests/fixtures/reduced.aff", "tests/fixtures/reduced.dic");
+    assert!(hs.check("cats"));
+    assert!(!hs.check("systemdunits"));
+    assert!(hs.add_dictionary("tests/fixtures/extra.dic"));
+    assert!(hs.check("cats"));
+    assert!(hs.check("systemdunits"));
+}
+
+#[test]
 fn suggest() {
     let hs = Hunspell::new("tests/fixtures/reduced.aff", "tests/fixtures/reduced.dic");
     assert!(hs.suggest("progra").len() > 0);
