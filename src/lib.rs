@@ -30,10 +30,19 @@ macro_rules! extract_vec {
             unsafe {
                 let mut list = null_mut();
                 let n = ffi::$fname($handle, &mut list, $( $arg ),*) as isize;
-                if n != 0 {
+                if n != 0 && list != null_mut() {
                     for i in 0..n {
-                        let item = CStr::from_ptr(*list.offset(i));
-                        result.push(String::from(item.to_str().unwrap()));
+                        let item_ptr_ptr = list.offset(i);
+                        if *item_ptr_ptr != null_mut() {
+                            let item = CStr::from_ptr(*item_ptr_ptr);
+                            match item.to_str() {
+                                Ok(s) => result.push(String::from(s)),
+                                Err(e) =>
+                                eprintln!("Encountered error {e:?} returned from hunspell: {item:?}"),
+                            }
+                        } else {
+                            eprintln!("Hunspell provided list contained null-pointer when calling {}", stringify!($fname));
+                        }
                     }
                     ffi::Hunspell_free_list($handle, &mut list, n as i32);
                 }
