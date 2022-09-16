@@ -37,8 +37,11 @@ macro_rules! extract_vec {
                             let item = CStr::from_ptr(*item_ptr_ptr);
                             match item.to_str() {
                                 Ok(s) => result.push(String::from(s)),
-                                Err(e) =>
-                                eprintln!("Encountered error {e:?} returned from hunspell: {item:?}"),
+                                Err(e) => {
+                                    let args = [$( format!("{:?}", CStr::from_ptr($arg)) ),*];
+                                    let fname = stringify!($fname);
+                                    eprintln!("Encountered error {e:?} returned from {fname}(handle, {args:?}): {i}: {item:?}");
+                                },
                             }
                         } else {
                             eprintln!("Hunspell provided list contained null-pointer when calling {}", stringify!($fname));
