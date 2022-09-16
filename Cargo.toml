@@ -10,7 +10,7 @@ repository = "https://github.com/drahnr/hunspell-rs"
 edition = "2018"
 
 [dependencies]
-hunspell-sys = { version = "^0.2.1", default-features = false }
+hunspell-sys = { version = "0.3.0", default-features = false }
 
 [features]
 default = ["bundled"]
