@@ -31,6 +31,21 @@ pub struct Hunspell {
     guarded_handle: std::sync::Mutex<*mut ffi::Hunhandle>,
 }
 
+fn to_hex_str(s: &CStr) -> String {
+    let bytes = s.to_bytes();
+    let mut acc = String::with_capacity(6 * bytes.len());
+    let mut iter = bytes.iter();
+    acc += "[";
+    if let Some(byte) = iter.next() {
+        acc += &format!("0x{:02x}",byte);
+        for byte in iter {
+            acc += &format!(", 0x{:02x}",byte);
+        }
+    }
+    acc += "]";
+    acc
+}
+
 macro_rules! extract_vec {
     ( $fname:ident, $handle:expr, $( $arg:expr ),* ) => {
         {
@@ -46,9 +61,10 @@ macro_rules! extract_vec {
                             match item.to_str() {
                                 Ok(s) => result.push(String::from(s)),
                                 Err(e) => {
-                                    let args = [$( format!("{:?}", CStr::from_ptr($arg).to_bytes()) ),*];
+                                    let args = [$( format!("{:?}", CStr::from_ptr($arg)) ),*];
                                     let fname = stringify!($fname);
-                                    log::warn!(target: "hunspell,", "Error {e:?} returned from {fname}(handle, {args:?}) when converting `CStr` to `String` str: {i}: {item:?}");
+                                    let hex = to_hex_str(item);
+                                    log::warn!(target: "hunspell,", "Error {e:?} returned from {fname}(handle, {args:?}) when converting `CStr` to `String` str: {i}: {hex:?}");
                                 },
                             }
                         } else {

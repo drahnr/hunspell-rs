@@ -7,7 +7,7 @@ keywords = ["spellcheck", "hunspell"]
 license = "Apache-2.0"
 readme = "README.md"
 repository = "https://github.com/drahnr/hunspell-rs"
-edition = "2018"
+edition = "2021"
 
 [dependencies]
 hunspell-sys = { version = "0.3.0", default-features = false }
