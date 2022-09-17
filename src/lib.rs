@@ -21,8 +21,8 @@ use hunspell_sys as ffi;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CheckResult {
-    PresentInDictionary,
-    SpellingMistake,
+    FoundInDictionary,
+    MissingInDictionary,
 }
 
 pub struct Hunspell {
@@ -110,8 +110,8 @@ impl Hunspell {
         let handle = self.guarded_handle.lock().unwrap();
         let ret = unsafe { ffi::Hunspell_spell(*handle, word.as_ptr()) };
         match ret {
-            0 => CheckResult::SpellingMistake,
-            _ => CheckResult::PresentInDictionary,
+            0 => CheckResult::MissingInDictionary,
+            _ => CheckResult::FoundInDictionary,
         }
     }
 
