@@ -38,13 +38,15 @@ macro_rules! extract_vec {
                             match item.to_str() {
                                 Ok(s) => result.push(String::from(s)),
                                 Err(e) => {
-                                    let args = [$( format!("{:?}", CStr::from_ptr($arg)) ),*];
+                                    let args = [$( format!("{:?}", CStr::from_ptr($arg).to_bytes()) ),*];
                                     let fname = stringify!($fname);
-                                    eprintln!("Encountered error {e:?} returned from {fname}(handle, {args:?}): {i}: {item:?}");
+                                    log::warn!(target: "hunspell,", "Error {e:?} returned from {fname}(handle, {args:?}) when converting `CStr` to `String` str: {i}: {item:?}");
                                 },
                             }
                         } else {
-                            eprintln!("Hunspell provided list contained null-pointer when calling {}", stringify!($fname));
+                            let args = [$( format!("{:?}", CStr::from_ptr($arg)) ),*];
+                            let fname = stringify!($fname);
+                            log::warn!(target: "hunspell", "Suggestion list contained null-pointer when calling {fname}(handle, {args:?})");
                         }
                     }
                     ffi::Hunspell_free_list($handle, &mut list, n as i32);
