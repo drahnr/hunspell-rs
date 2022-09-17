@@ -1,6 +1,6 @@
 [package]
 name = "hunspell-rs"
-version = "0.3.3"
+version = "0.4.0"
 authors = ["Lipka Boldizsár <lipkab@zoho.com>", "Bernhard Schuster <bernhard@ahoi.io>"]
 description = "Rust bindings to the Hunspell library"
 keywords = ["spellcheck", "hunspell"]
