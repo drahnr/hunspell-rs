@@ -19,6 +19,12 @@ use std::ptr::null_mut;
 
 use hunspell_sys as ffi;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CheckResult {
+    PresentInDictionary,
+    SpellingMistake,
+}
+
 pub struct Hunspell {
     // some operations of hunspell have global state
     // hence the lock is needed around those
@@ -99,10 +105,14 @@ impl Hunspell {
         unsafe { ffi::Hunspell_add(*handle, cword.as_ptr()) == 0 }
     }
 
-    pub fn check(&self, word: &str) -> bool {
+    pub fn check(&self, word: &str) -> CheckResult {
         let word = CString::new(word).unwrap();
         let handle = self.guarded_handle.lock().unwrap();
-        unsafe { ffi::Hunspell_spell(*handle, word.as_ptr()) == 1 }
+        let ret = unsafe { ffi::Hunspell_spell(*handle, word.as_ptr()) };
+        match ret {
+            0 => CheckResult::SpellingMistake,
+            _ => CheckResult::PresentInDictionary,
+        }
     }
 
     pub fn suggest(&self, word: &str) -> Vec<String> {

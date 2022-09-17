@@ -14,7 +14,7 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-use crate::Hunspell;
+use crate::{CheckResult, Hunspell};
 
 #[test]
 fn create_and_destroy() {
@@ -24,27 +24,27 @@ fn create_and_destroy() {
 #[test]
 fn check() {
     let hs = Hunspell::new("tests/fixtures/reduced.aff", "tests/fixtures/reduced.dic");
-    assert!(hs.check("cats"));
-    assert!(!hs.check("nocats"));
+    assert_eq!(CheckResult::PresentInDictionary, hs.check("cats"));
+    assert_eq!(CheckResult::SpellingMistake, hs.check("nocats"));
 }
 
 #[test]
 fn check_with_added_word() {
     let mut hs = Hunspell::new("tests/fixtures/reduced.aff", "tests/fixtures/reduced.dic");
-    assert!(hs.check("cats"));
-    assert!(!hs.check("octonasaurius"));
+    assert_eq!(CheckResult::PresentInDictionary, hs.check("cats"));
+    assert_eq!(CheckResult::SpellingMistake, hs.check("octonasaurius"));
     assert!(hs.add("octonasaurius"));
-    assert!(hs.check("octonasaurius"));
+    assert_eq!(CheckResult::PresentInDictionary, hs.check("octonasaurius"));
 }
 
 #[test]
 fn check_with_extra_dic() {
     let mut hs = Hunspell::new("tests/fixtures/reduced.aff", "tests/fixtures/reduced.dic");
-    assert!(hs.check("cats"));
-    assert!(!hs.check("systemdunits"));
+    assert_eq!(CheckResult::PresentInDictionary, hs.check("cats"));
+    assert_eq!(CheckResult::SpellingMistake, hs.check("systemdunits"));
     assert!(hs.add_dictionary("tests/fixtures/extra.dic"));
-    assert!(hs.check("cats"));
-    assert!(hs.check("systemdunits"));
+    assert_eq!(CheckResult::PresentInDictionary, hs.check("cats"));
+    assert_eq!(CheckResult::PresentInDictionary, hs.check("systemdunits"));
 }
 
 #[test]
