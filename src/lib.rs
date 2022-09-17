@@ -20,7 +20,9 @@ use std::ptr::null_mut;
 use hunspell_sys as ffi;
 
 pub struct Hunspell {
-    handle: *mut ffi::Hunhandle,
+    // some operations of hunspell have global state
+    // hence the lock is needed around those
+    guarded_handle: std::sync::Mutex<*mut ffi::Hunhandle>,
 }
 
 macro_rules! extract_vec {
@@ -61,10 +63,9 @@ impl Hunspell {
     pub fn new(affpath: &str, dicpath: &str) -> Hunspell {
         let affpath = CString::new(affpath).unwrap();
         let dicpath = CString::new(dicpath).unwrap();
-        unsafe {
-            Hunspell {
-                handle: ffi::Hunspell_create(affpath.as_ptr(), dicpath.as_ptr()),
-            }
+        let handle = unsafe { ffi::Hunspell_create(affpath.as_ptr(), dicpath.as_ptr()) };
+        Hunspell {
+            guarded_handle: std::sync::Mutex::new(handle),
         }
     }
 
@@ -72,17 +73,19 @@ impl Hunspell {
         let affpath = CString::new(affpath).unwrap();
         let dicpath = CString::new(dicpath).unwrap();
         let key = CString::new(key).unwrap();
-        unsafe {
-            Hunspell {
-                handle: ffi::Hunspell_create_key(affpath.as_ptr(), dicpath.as_ptr(), key.as_ptr()),
-            }
+
+        let handle =
+            unsafe { ffi::Hunspell_create_key(affpath.as_ptr(), dicpath.as_ptr(), key.as_ptr()) };
+        Hunspell {
+            guarded_handle: std::sync::Mutex::new(handle),
         }
     }
 
     /// Add an additional dictonary for lookup usage for i.e. `check`.
     pub fn add_dictionary(&mut self, dicpath: &str) -> bool {
         let dicpath = CString::new(dicpath).unwrap();
-        unsafe { ffi::Hunspell_add_dic(self.handle, dicpath.as_ptr()) == 0 }
+        let handle = self.guarded_handle.lock().unwrap();
+        unsafe { ffi::Hunspell_add_dic(*handle, dicpath.as_ptr()) == 0 }
     }
 
     /// Add a word to the runtime dictionary.
@@ -92,45 +95,47 @@ impl Hunspell {
     /// in the first place.
     pub fn add(&mut self, word: &str) -> bool {
         let cword = CString::new(word).unwrap();
-        unsafe { ffi::Hunspell_add(self.handle, cword.as_ptr()) == 0 }
+        let handle = self.guarded_handle.lock().unwrap();
+        unsafe { ffi::Hunspell_add(*handle, cword.as_ptr()) == 0 }
     }
 
     pub fn check(&self, word: &str) -> bool {
         let word = CString::new(word).unwrap();
-        unsafe { ffi::Hunspell_spell(self.handle, word.as_ptr()) == 1 }
+        let handle = self.guarded_handle.lock().unwrap();
+        unsafe { ffi::Hunspell_spell(*handle, word.as_ptr()) == 1 }
     }
 
     pub fn suggest(&self, word: &str) -> Vec<String> {
         let word = CString::new(word).unwrap();
-        extract_vec!(Hunspell_suggest, self.handle, word.as_ptr())
+        let handle = self.guarded_handle.lock().unwrap();
+        extract_vec!(Hunspell_suggest, *handle, word.as_ptr())
     }
 
     pub fn analyze(&self, word: &str) -> Vec<String> {
         let word = CString::new(word).unwrap();
-        extract_vec!(Hunspell_analyze, self.handle, word.as_ptr())
+        let handle = self.guarded_handle.lock().unwrap();
+        extract_vec!(Hunspell_analyze, *handle, word.as_ptr())
     }
 
     pub fn stem(&self, word: &str) -> Vec<String> {
         let word = CString::new(word).unwrap();
-        extract_vec!(Hunspell_stem, self.handle, word.as_ptr())
+        let handle = self.guarded_handle.lock().unwrap();
+        extract_vec!(Hunspell_stem, *handle, word.as_ptr())
     }
 
     pub fn generate(&self, word1: &str, word2: &str) -> Vec<String> {
         let word1 = CString::new(word1).unwrap();
         let word2 = CString::new(word2).unwrap();
-        extract_vec!(
-            Hunspell_generate,
-            self.handle,
-            word1.as_ptr(),
-            word2.as_ptr()
-        )
+        let handle = self.guarded_handle.lock().unwrap();
+        extract_vec!(Hunspell_generate, *handle, word1.as_ptr(), word2.as_ptr())
     }
 }
 
 impl Drop for Hunspell {
     fn drop(&mut self) {
+        let handle = self.guarded_handle.lock().unwrap();
         unsafe {
-            ffi::Hunspell_destroy(self.handle);
+            ffi::Hunspell_destroy(*handle);
         }
     }
 }
