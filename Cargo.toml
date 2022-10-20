@@ -19,3 +19,6 @@ default = ["bundled"]
 bundled = ["hunspell-sys/bundled"]
 static = ["hunspell-sys/static"]
 static_libclang = ["hunspell-sys/static_libclang"]
+
+[patch.crates-io]
+hunspell-sys = { git = "https://github.com/drahnr/hunspell-sys.git", branch = "bernhard-more-features" }
