@@ -17,3 +17,5 @@ log = "0.4.17"
 default = ["bundled"]
 
 bundled = ["hunspell-sys/bundled"]
+static = ["hunspell-sys/static"]
+static_libclang = ["hunspell-sys/static_libclang"]
