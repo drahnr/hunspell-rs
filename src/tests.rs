@@ -14,48 +14,72 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-use crate::{CheckResult, Hunspell};
+use crate::SpellChecker;
 
 #[test]
 fn create_and_destroy() {
-    let _hs = Hunspell::new("tests/fixtures/reduced.aff", "tests/fixtures/reduced.dic");
+    let _hs =
+        SpellChecker::new("tests/fixtures/reduced.aff", "tests/fixtures/reduced.dic").unwrap();
 }
 
 #[test]
 fn check() {
-    let hs = Hunspell::new("tests/fixtures/reduced.aff", "tests/fixtures/reduced.dic");
-    assert_eq!(CheckResult::FoundInDictionary, hs.check("cats"));
-    assert_eq!(CheckResult::MissingInDictionary, hs.check("nocats"));
+    let hs = SpellChecker::new("tests/fixtures/reduced.aff", "tests/fixtures/reduced.dic").unwrap();
+    assert_eq!(Ok(true), hs.check("cats"));
+    assert_eq!(Ok(false), hs.check("nocats"));
 }
 
 #[test]
-fn check_with_added_word() {
-    let mut hs = Hunspell::new("tests/fixtures/reduced.aff", "tests/fixtures/reduced.dic");
-    assert_eq!(CheckResult::FoundInDictionary, hs.check("cats"));
-    assert_eq!(CheckResult::MissingInDictionary, hs.check("octonasaurius"));
-    assert!(hs.add("octonasaurius"));
-    assert_eq!(CheckResult::FoundInDictionary, hs.check("octonasaurius"));
+fn spell_with_add_and_remove() {
+    let hs = SpellChecker::new("tests/fixtures/reduced.aff", "tests/fixtures/reduced.dic").unwrap();
+    assert_eq!(Ok(true), hs.check("cats"));
+    assert_eq!(Ok(false), hs.check("octonasaurius"));
+    assert_eq!(Ok(()), hs.add("octonasaurius"));
+    assert_eq!(Ok(true), hs.check("octonasaurius"));
+    assert_eq!(Ok(()), hs.remove("octonasaurius"));
+    assert_eq!(Ok(false), hs.check("octonasaurius"));
 }
 
 #[test]
-fn check_with_extra_dic() {
-    let mut hs = Hunspell::new("tests/fixtures/reduced.aff", "tests/fixtures/reduced.dic");
-    assert_eq!(CheckResult::FoundInDictionary, hs.check("cats"));
-    assert_eq!(CheckResult::MissingInDictionary, hs.check("systemdunits"));
-    assert!(hs.add_dictionary("tests/fixtures/extra.dic"));
-    assert_eq!(CheckResult::FoundInDictionary, hs.check("cats"));
-    assert_eq!(CheckResult::FoundInDictionary, hs.check("systemdunits"));
+fn spell_with_add_with_affix() {
+    let hs = SpellChecker::new("tests/fixtures/reduced.aff", "tests/fixtures/reduced.dic").unwrap();
+    assert_eq!(Ok(true), hs.check("cats"));
+    assert_eq!(Ok(false), hs.check("rusts"));
+    assert_eq!(Ok(()), hs.add_with_affix("rust", "cat"));
+    assert_eq!(Ok(true), hs.check("rusts"));
+}
+
+#[test]
+fn spell_with_extra_dic() {
+    let mut hs =
+        SpellChecker::new("tests/fixtures/reduced.aff", "tests/fixtures/reduced.dic").unwrap();
+    assert_eq!(Ok(true), hs.check("cats"));
+    assert_eq!(Ok(false), hs.check("systemdunits"));
+    assert_eq!(Ok(true), hs.add_dictionary("tests/fixtures/extra.dic"));
+    assert_eq!(Ok(true), hs.check("cats"));
+    assert_eq!(Ok(true), hs.check("systemdunits"));
 }
 
 #[test]
 fn suggest() {
-    let hs = Hunspell::new("tests/fixtures/reduced.aff", "tests/fixtures/reduced.dic");
-    assert!(hs.suggest("progra").len() > 0);
+    let hs = SpellChecker::new("tests/fixtures/reduced.aff", "tests/fixtures/reduced.dic").unwrap();
+    assert!(hs.suggest("progra").unwrap().len() > 0);
 }
 
 #[test]
 fn stem() {
-    let hs = Hunspell::new("tests/fixtures/reduced.aff", "tests/fixtures/reduced.dic");
-    let cat_stem = hs.stem("cats");
+    let hs = SpellChecker::new("tests/fixtures/reduced.aff", "tests/fixtures/reduced.dic").unwrap();
+    let cat_stem = hs.stem("cats").unwrap();
+    assert!(cat_stem[0] == "cat");
+}
+
+#[test]
+#[cfg(feature = "serde")]
+fn serde() {
+    let hs = SpellChecker::new("tests/fixtures/reduced.aff", "tests/fixtures/reduced.dic").unwrap();
+    let serialized: Vec<u8> = bincode::serialize(&hs).unwrap();
+    let deserialized: SpellChecker = bincode::deserialize(&serialized[..]).unwrap();
+    assert_eq!(hs.affix(), deserialized.affix());
+    let cat_stem = deserialized.stem("cats").unwrap();
     assert!(cat_stem[0] == "cat");
 }
